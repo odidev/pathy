@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.8]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -53,3 +53,27 @@ jobs:
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: sh tools/deploy.sh
+        
+  armv64_job:
+    name: Build and Test for arm64
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false      
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up QEMU
+      id: qemu
+      uses: docker/setup-qemu-action@v1
+    - name: Install and test bottleneck
+      run: |
+            docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+              arm64v8/ubuntu:20.04 \
+              bash -exc 'apt update && \
+              apt install -y python3.8 && \
+              apt install -y python3-pip && \
+              python3.8 -m pip install --upgrade pip setuptools wheel && \
+              sh tools/setup.sh && \
+              sh tools/lint.sh && \
+              sh tools/build.sh && \
+              rm -rf ./pathy/ && sh tools/test_package.sh && \
+              deactivate'
